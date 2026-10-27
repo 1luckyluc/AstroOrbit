@@ -2,7 +2,9 @@
 
 
 def kinetic_energy(vel, masses):
-    ke = 0.5 * sum(masses[i] * (vel[2 * i] ** 2 + vel[2 * i + 1] ** 2))
+    ke = 0.0
+    for i in range(len(masses)):
+        ke += 0.5 * masses[i] * (vel[2 * i] ** 2 + vel[2 * i + 1] ** 2)
     return ke
 
 def potential_energy(pos, masses, G):
@@ -19,14 +21,12 @@ def potential_energy(pos, masses, G):
 def total_energy(pos, vel, masses, G):
     return kinetic_energy(vel, masses) + potential_energy(pos, masses, G)
 
-
 def angular_momentum(pos, vel, masses):
     """z-component of the total angular momentum (2D)."""
     Lz = 0.0
     for i in range(len(masses)):
         Lz += masses[i] * (pos[2 * i] * vel[2 * i + 1] - pos[2 * i + 1] * vel[2 * i])
     return Lz
-
 
 def relative_drift(value, initial):
     """(value - initial) / |initial|, the quantity to plot over time."""

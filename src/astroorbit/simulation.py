@@ -8,10 +8,12 @@ from enum import Enum
 from astroorbit.integrators import get_integrator
 from astroorbit.physics import forces
 
+
 class State(Enum):
     STOPPED = "stopped"
     RUNNING = "running"
     PAUSED = "paused"
+
 
 class Simulation:
     def __init__(self, system, mode, integrator=None, dt=None):
@@ -69,4 +71,6 @@ class Simulation:
 
     def _record(self):
         self.history["t"].append(self.t)
-        # TODO: append energy error, orbital elements, ... (from analysis/) for the plots
+        self.history["pos"] = self.history.get("pos", []) + [self.system.pos.copy()]
+        self.history["vel"] = self.history.get("vel", []) + [self.system.vel.copy()]
+                

@@ -3,7 +3,6 @@ import tkinter as tk
 
 BG = "#0b0e17"
 
-
 class OrbitCanvas(tk.Canvas):
     def __init__(self, master):
         super().__init__(master, bg=BG, highlightthickness=0)
