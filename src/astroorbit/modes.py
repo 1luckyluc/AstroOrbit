@@ -16,7 +16,6 @@ class Mode:
     units: UnitSystem
     force_model: str = "newtonian"  # name of a function in physics/forces.py
     default_integrator: str = "Leapfrog"
-    default_dt: float = 1e-3
     plots: tuple = ()  # quantities offered in the plots panel
 
 
@@ -35,7 +34,6 @@ MODES = {
         description="Comets and asteroids: near-massless bodies on eccentric orbits, "
                     "perturbed by the planets. Small time steps near perihelion.",
         units=ASTRO,
-        default_dt=1e-4,
         plots=("Distance to Sun", "Eccentricity", "Perihelion distance"),
     ),
     "chaos": Mode(
