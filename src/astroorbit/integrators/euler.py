@@ -5,8 +5,9 @@ from astroorbit.integrators.base import Integrator, register
 class Euler(Integrator):
     name = "Euler"
     order = 1
-    description = "Explicit first-order method. Simple, but energy drifts quickly."
 
     def step(self, pos, vel, accel_fn, dt):
-        # TODO: x_{n+1} = x_n + dt * v_n,   v_{n+1} = v_n + dt * a(x_n)
-        raise NotImplementedError("Euler.step (integrators/euler.py)")
+        a = accel_fn(pos)
+        new_pos = [p + dt * v for p, v in zip(pos, vel)]
+        new_vel = [v + dt * ai for v, ai in zip(vel, a)]
+        return new_pos, new_vel

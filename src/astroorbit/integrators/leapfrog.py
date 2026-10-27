@@ -5,8 +5,11 @@ from astroorbit.integrators.base import Integrator, register
 class Leapfrog(Integrator):
     name = "Leapfrog"
     order = 2
-    description = "Kick-drift-kick, 2nd order and symplectic: energy error stays bounded."
 
     def step(self, pos, vel, accel_fn, dt):
-        # TODO: half kick (v += a dt/2), drift (x += v dt), half kick with the new a
-        raise NotImplementedError("Leapfrog.step (integrators/leapfrog.py)")
+        a = accel_fn(pos)
+        new_vel = [v + dt * ai / 2 for v, ai in zip(vel, a)]
+        new_pos = [p + dt * v for p, v in zip(pos, new_vel)]
+        a = accel_fn(new_pos)
+        new_vel = [v + dt * ai / 2 for v, ai in zip(new_vel, a)]
+        return new_pos, new_vel
