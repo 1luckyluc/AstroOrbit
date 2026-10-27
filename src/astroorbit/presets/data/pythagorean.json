@@ -1,0 +1,11 @@
+{
+  "name": "Pythagorean 3-body (Burrau)",
+  "mode": "chaos",
+  "description": "Masses 3, 4, 5 at rest on a 3-4-5 triangle, G = 1. Chaotic close encounters, then one body is ejected.",
+  "dt": 0.0001,
+  "bodies": [
+    {"name": "m3", "mass": 3.0, "x": 1.0,  "y": 3.0,  "vx": 0.0, "vy": 0.0, "color": "#ff7b7b", "radius_px": 4},
+    {"name": "m4", "mass": 4.0, "x": -2.0, "y": -1.0, "vx": 0.0, "vy": 0.0, "color": "#7bb8ff", "radius_px": 5},
+    {"name": "m5", "mass": 5.0, "x": 1.0,  "y": -1.0, "vx": 0.0, "vy": 0.0, "color": "#9bff7b", "radius_px": 6}
+  ]
+}

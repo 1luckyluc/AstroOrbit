@@ -1,0 +1,11 @@
+{
+  "name": "Figure-eight 3-body",
+  "mode": "chaos",
+  "description": "Chenciner & Montgomery (2000) periodic orbit, G = m = 1, period ~6.33. Stable-looking, but perturb it slightly and see.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "A", "mass": 1.0, "x": 0.97000436,  "y": -0.24308753, "vx": 0.466203685,  "vy": 0.43236573,  "color": "#ff7b7b", "radius_px": 5},
+    {"name": "B", "mass": 1.0, "x": -0.97000436, "y": 0.24308753,  "vx": 0.466203685,  "vy": 0.43236573,  "color": "#7bb8ff", "radius_px": 5},
+    {"name": "C", "mass": 1.0, "x": 0.0,         "y": 0.0,         "vx": -0.93240737,  "vy": -0.86473146, "color": "#9bff7b", "radius_px": 5}
+  ]
+}

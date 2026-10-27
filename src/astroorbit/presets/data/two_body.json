@@ -1,0 +1,10 @@
+{
+  "name": "Two-body (e = 0.5)",
+  "mode": "planet",
+  "description": "A planet on an eccentric orbit (a = 1 AU, e = 0.5), starting at perihelion. Period = 1 yr.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "Sun",    "mass": 1.0,    "x": 0.0, "y": 0.0, "vx": 0.0, "vy": 0.0,    "color": "#ffd34d", "radius_px": 8},
+    {"name": "Planet", "mass": 3.0e-6, "x": 0.5, "y": 0.0, "vx": 0.0, "vy": 10.883, "color": "#4da6ff", "radius_px": 4}
+  ]
+}

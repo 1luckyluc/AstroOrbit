@@ -1,0 +1,14 @@
+{
+  "name": "Solar System (to Jupiter)",
+  "mode": "planet",
+  "description": "Sun, the four inner planets and Jupiter on circular orbits. Units: AU, yr, Msun.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "Sun",     "mass": 1.0,     "x": 0.0,   "y": 0.0, "vx": 0.0, "vy": 0.0,    "color": "#ffd34d", "radius_px": 9},
+    {"name": "Mercury", "mass": 1.66e-7, "x": 0.387, "y": 0.0, "vx": 0.0, "vy": 10.100, "color": "#b0a89a", "radius_px": 3},
+    {"name": "Venus",   "mass": 2.45e-6, "x": 0.723, "y": 0.0, "vx": 0.0, "vy": 7.389,  "color": "#e8c27a", "radius_px": 4},
+    {"name": "Earth",   "mass": 3.0e-6,  "x": 1.0,   "y": 0.0, "vx": 0.0, "vy": 6.283,  "color": "#4da6ff", "radius_px": 4},
+    {"name": "Mars",    "mass": 3.2e-7,  "x": 1.524, "y": 0.0, "vx": 0.0, "vy": 5.090,  "color": "#e0603a", "radius_px": 3},
+    {"name": "Jupiter", "mass": 9.55e-4, "x": 5.203, "y": 0.0, "vx": 0.0, "vy": 2.755,  "color": "#d9a066", "radius_px": 6}
+  ]
+}
