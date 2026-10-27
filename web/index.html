@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AstroOrbit Web</title>
+<style>
+  :root {
+    --bg: #0b0e17; --panel: #141a2a; --text: #d8dbea; --muted: #8a90a8;
+    --accent: #6ea8ff; --border: #262e45;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, sans-serif; }
+  #app { display: flex; height: 100vh; }
+  #view { flex: 1; position: relative; min-width: 0; }
+  canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+  aside { width: 300px; padding: 14px; background: var(--panel); border-left: 1px solid var(--border);
+    overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  label { color: var(--muted); font-size: 12px; }
+  select, input[type=text], button { width: 100%; padding: 6px 8px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  .row { display: flex; gap: 6px; }
+  .checks { display: flex; gap: 14px; color: var(--text); font-size: 13px; }
+  .checks label { color: var(--text); font-size: 13px; }
+  hr { border: 0; border-top: 1px solid var(--border); width: 100%; margin: 4px 0; }
+  #bodies { height: 120px; }
+  .grid { display: grid; grid-template-columns: 50px 1fr; gap: 4px 8px; align-items: center; }
+  #readout { font: 12px/1.6 ui-monospace, Menlo, monospace; white-space: pre; }
+  .note { color: var(--muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    #app { flex-direction: column; height: auto; }
+    #view { height: 60vh; }
+    aside { width: 100%; border-left: 0; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <canvas id="c"></canvas>
+    <div id="loading">Loading Python (Pyodide)…</div>
+  </div>
+  <aside>
+    <h1>AstroOrbit</h1>
+    <div class="note">Same Python physics core as the desktop app, running in your browser.</div>
+
+    <label for="preset">Preset</label>
+    <select id="preset"></select>
+
+    <label for="integrator" title="Euler: 1st order, energy drifts. RK4: 4th order, accurate short-term, slow drift. Leapfrog: 2nd-order symplectic, energy error stays bounded.">Integrator ⓘ</label>
+    <select id="integrator"></select>
+
+    <label for="speed">Steps per frame (speed)</label>
+    <input id="speed" type="range" min="1" max="50" value="5">
+
+    <div class="row">
+      <button id="run" disabled>Start</button>
+      <button id="step" disabled>Step</button>
+      <button id="reset" disabled>Reset</button>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="trails" checked> Trails</label>
+      <label><input type="checkbox" id="labels" checked> Labels</label>
+    </div>
+
+    <hr>
+    <label for="bodies">Bodies</label>
+    <select id="bodies" size="6"></select>
+    <div class="grid" id="editor"></div>
+    <div class="row">
+      <button id="apply">Apply</button>
+      <button id="add">Add</button>
+      <button id="del">Delete</button>
+    </div>
+
+    <hr>
+    <div id="readout" title="ΔE/E: relative drift of total energy, a check on the integrator. a: semi-major axis, e: eccentricity of the selected body relative to body 0."></div>
+    <div class="note">Scroll to zoom, drag to pan.</div>
+  </aside>
+</div>
+
+<!-- astroorbit/core.py, inlined by build_web.py -->
+<script type="text/python" id="core-py">"""AstroOrbit physics core.
+
+Pure Python (no numpy, no GUI imports) so the exact same file runs in the
+desktop app and in the browser through Pyodide.
+
+Units for the solar-system presets: AU, years, solar masses, so G = 4 pi^2.
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+
+G_SOLAR = 4.0 * math.pi ** 2  # AU^3 / (Msun yr^2)
+
+
+@dataclass
+class Body:
+    name: str
+    mass: float
+    x: float
+    y: float
+    vx: float
+    vy: float
+    color: str = "#ffffff"
+    radius_px: float = 4.0
+
+
+# ---------------------------------------------------------------- forces ---
+
+def accelerations(pos, masses, G, soft2):
+    """Pairwise Newtonian gravity, O(N^2). pos is a flat list [x0, y0, x1, y1, ...]."""
+    n = len(masses)
+    acc = [0.0] * (2 * n)
+    for i in range(n):
+        xi, yi = pos[2 * i], pos[2 * i + 1]
+        for j in range(i + 1, n):
+            dx = pos[2 * j] - xi
+            dy = pos[2 * j + 1] - yi
+            r2 = dx * dx + dy * dy + soft2
+            inv_r3 = 1.0 / (r2 * math.sqrt(r2))
+            fi = G * masses[j] * inv_r3
+            fj = G * masses[i] * inv_r3
+            acc[2 * i] += fi * dx
+            acc[2 * i + 1] += fi * dy
+            acc[2 * j] -= fj * dx
+            acc[2 * j + 1] -= fj * dy
+    return acc
+
+
+# ----------------------------------------------------------- integrators ---
+
+def step_euler(pos, vel, masses, G, soft2, dt):
+    a = accelerations(pos, masses, G, soft2)
+    new_pos = [p + dt * v for p, v in zip(pos, vel)]
+    new_vel = [v + dt * ai for v, ai in zip(vel, a)]
+    return new_pos, new_vel
+
+
+def step_leapfrog(pos, vel, masses, G, soft2, dt):
+    """Kick-drift-kick leapfrog (symplectic, 2nd order)."""
+    a = accelerations(pos, masses, G, soft2)
+    v_half = [v + 0.5 * dt * ai for v, ai in zip(vel, a)]
+    new_pos = [p + dt * v for p, v in zip(pos, v_half)]
+    a = accelerations(new_pos, masses, G, soft2)
+    new_vel = [v + 0.5 * dt * ai for v, ai in zip(v_half, a)]
+    return new_pos, new_vel
+
+
+def step_rk4(pos, vel, masses, G, soft2, dt):
+    def deriv(p, v):
+        return v, accelerations(p, masses, G, soft2)
+
+    def add(x, k, h):
+        return [xi + h * ki for xi, ki in zip(x, k)]
+
+    k1p, k1v = deriv(pos, vel)
+    k2p, k2v = deriv(add(pos, k1p, dt / 2), add(vel, k1v, dt / 2))
+    k3p, k3v = deriv(add(pos, k2p, dt / 2), add(vel, k2v, dt / 2))
+    k4p, k4v = deriv(add(pos, k3p, dt), add(vel, k3v, dt))
+    new_pos = [p + dt / 6 * (a + 2 * b + 2 * c + d)
+               for p, a, b, c, d in zip(pos, k1p, k2p, k3p, k4p)]
+    new_vel = [v + dt / 6 * (a + 2 * b + 2 * c + d)
+               for v, a, b, c, d in zip(vel, k1v, k2v, k3v, k4v)]
+    return new_pos, new_vel
+
+
+INTEGRATORS = {
+    "Leapfrog": step_leapfrog,
+    "RK4": step_rk4,
+    "Euler": step_euler,
+}
+
+
+# ------------------------------------------------------------ simulation ---
+
+@dataclass
+class Simulation:
+    bodies: list
+    G: float = G_SOLAR
+    dt: float = 0.002
+    integrator: str = "Leapfrog"
+    softening: float = 1e-4
+    trail_length: int = 400
+    t: float = 0.0
+    trails: list = field(default_factory=list)
+    _E0: float = 0.0
+
+    def __post_init__(self):
+        self._sync_from_bodies()
+        self._E0 = self.total_energy()
+        self.trails = [[] for _ in self.bodies]
+
+    # internal flat arrays are the source of truth while running
+    def _sync_from_bodies(self):
+        self.masses = [b.mass for b in self.bodies]
+        self.pos = [c for b in self.bodies for c in (b.x, b.y)]
+        self.vel = [c for b in self.bodies for c in (b.vx, b.vy)]
+
+    def _sync_to_bodies(self):
+        for i, b in enumerate(self.bodies):
+            b.x, b.y = self.pos[2 * i], self.pos[2 * i + 1]
+            b.vx, b.vy = self.vel[2 * i], self.vel[2 * i + 1]
+
+    def step(self, n=1):
+        f = INTEGRATORS[self.integrator]
+        soft2 = self.softening ** 2
+        for _ in range(n):
+            self.pos, self.vel = f(self.pos, self.vel, self.masses, self.G, soft2, self.dt)
+            self.t += self.dt
+        self._sync_to_bodies()
+        for i, tr in enumerate(self.trails):
+            tr.append((self.pos[2 * i], self.pos[2 * i + 1]))
+            if len(tr) > self.trail_length:
+                del tr[0]
+
+    # ---- editing (items 3-4 of the brief) ----
+    def add_body(self, body):
+        self._sync_to_bodies()
+        self.bodies.append(body)
+        self.trails.append([])
+        self._sync_from_bodies()
+        self._E0 = self.total_energy()
+
+    def update_body(self, index, **values):
+        self._sync_to_bodies()
+        for k, v in values.items():
+            setattr(self.bodies[index], k, v)
+        self.trails[index] = []
+        self._sync_from_bodies()
+        self._E0 = self.total_energy()
+
+    def remove_body(self, index):
+        self._sync_to_bodies()
+        del self.bodies[index]
+        del self.trails[index]
+        self._sync_from_bodies()
+        self._E0 = self.total_energy()
+
+    # ---- diagnostics ----
+    def total_energy(self):
+        n = len(self.masses)
+        ke = 0.5 * sum(self.masses[i] * (self.vel[2 * i] ** 2 + self.vel[2 * i + 1] ** 2)
+                       for i in range(n))
+        pe = 0.0
+        soft2 = self.softening ** 2
+        for i in range(n):
+            for j in range(i + 1, n):
+                dx = self.pos[2 * j] - self.pos[2 * i]
+                dy = self.pos[2 * j + 1] - self.pos[2 * i + 1]
+                pe -= self.G * self.masses[i] * self.masses[j] / math.sqrt(dx * dx + dy * dy + soft2)
+        return ke + pe
+
+    def energy_error(self):
+        if self._E0 == 0:
+            return 0.0
+        return (self.total_energy() - self._E0) / abs(self._E0)
+
+    def orbital_elements(self, index, central=0):
+        """Semi-major axis and eccentricity of body `index` around body `central`."""
+        if index == central or index >= len(self.bodies):
+            return None
+        mu = self.G * (self.masses[index] + self.masses[central])
+        rx = self.pos[2 * index] - self.pos[2 * central]
+        ry = self.pos[2 * index + 1] - self.pos[2 * central + 1]
+        vx = self.vel[2 * index] - self.vel[2 * central]
+        vy = self.vel[2 * index + 1] - self.vel[2 * central + 1]
+        r = math.hypot(rx, ry)
+        v2 = vx * vx + vy * vy
+        eps = 0.5 * v2 - mu / r
+        a = -mu / (2 * eps) if eps < 0 else float("inf")
+        h = rx * vy - ry * vx  # z-component of specific angular momentum
+        ex = (vy * h) / mu - rx / r
+        ey = (-vx * h) / mu - ry / r
+        return {"a": a, "e": math.hypot(ex, ey), "r": r}
+
+    def snapshot(self):
+        """Flat data the browser front-end reads each frame."""
+        return {
+            "t": self.t,
+            "pos": list(self.pos),
+            "trails": [[c for p in tr for c in p] for tr in self.trails],
+            "energy_error": self.energy_error(),
+        }
+
+
+# --------------------------------------------------------------- presets ---
+
+def _circular(name, mass, a, color, radius_px, M=1.0, G=G_SOLAR, phase=0.0):
+    v = math.sqrt(G * M / a)
+    return Body(name, mass, a * math.cos(phase), a * math.sin(phase),
+                -v * math.sin(phase), v * math.cos(phase), color, radius_px)
+
+
+def preset_two_body():
+    e = 0.5
+    a = 1.0
+    r_peri = a * (1 - e)
+    v_peri = math.sqrt(G_SOLAR * (1 + e) / r_peri)
+    return Simulation([
+        Body("Sun", 1.0, 0, 0, 0, 0, "#ffd34d", 8),
+        Body("Planet", 3e-6, r_peri, 0, 0, v_peri, "#4da6ff", 4),
+    ], dt=0.002)
+
+
+def preset_inner_solar_system():
+    return Simulation([
+        Body("Sun", 1.0, 0, 0, 0, 0, "#ffd34d", 9),
+        _circular("Mercury", 1.66e-7, 0.387, "#b0a89a", 3, phase=0.3),
+        _circular("Venus", 2.45e-6, 0.723, "#e8c27a", 4, phase=2.1),
+        _circular("Earth", 3.0e-6, 1.000, "#4da6ff", 4, phase=4.0),
+        _circular("Mars", 3.2e-7, 1.524, "#e0603a", 3, phase=5.2),
+        _circular("Jupiter", 9.55e-4, 5.203, "#d9a066", 6, phase=1.0),
+    ], dt=0.001, trail_length=600)
+
+
+def preset_binary_star():
+    m = 0.5
+    d = 1.0
+    v = math.sqrt(G_SOLAR * m / (2 * d)) * 0.9
+    return Simulation([
+        Body("Star A", m, -d / 2, 0, 0, -v, "#ffb84d", 7),
+        Body("Star B", m, d / 2, 0, 0, v, "#9fc5ff", 7),
+        _circular("Circumbinary", 1e-6, 3.0, "#7dd87d", 3, M=2 * m),
+    ], dt=0.002)
+
+
+def preset_figure_eight():
+    """Chenciner & Montgomery (2000) choreography, G = m = 1."""
+    x1, y1 = 0.97000436, -0.24308753
+    vx3, vy3 = -0.93240737, -0.86473146
+    return Simulation([
+        Body("A", 1.0, x1, y1, -vx3 / 2, -vy3 / 2, "#ff7b7b", 5),
+        Body("B", 1.0, -x1, -y1, -vx3 / 2, -vy3 / 2, "#7bb8ff", 5),
+        Body("C", 1.0, 0, 0, vx3, vy3, "#9bff7b", 5),
+    ], G=1.0, dt=0.002, softening=0.0, trail_length=800)
+
+
+PRESETS = {
+    "Inner Solar System": preset_inner_solar_system,
+    "Two-body (e = 0.5)": preset_two_body,
+    "Binary star": preset_binary_star,
+    "Figure-eight 3-body": preset_figure_eight,
+}
+</script>
+
+<!-- Thin glue between JS and the core; returns JSON strings to keep the boundary simple. -->
+<script type="text/python" id="glue-py">
+import json
+from astroorbit.core import PRESETS, INTEGRATORS, Body
+
+sim = None
+
+def names():
+    return json.dumps({"presets": list(PRESETS), "integrators": list(INTEGRATORS)})
+
+def load(preset, integrator):
+    global sim
+    sim = PRESETS[preset]()
+    sim.integrator = integrator
+    return bodies()
+
+def bodies():
+    return json.dumps([{"name": b.name, "mass": b.mass, "x": b.x, "y": b.y, "vx": b.vx,
+                        "vy": b.vy, "color": b.color, "r": b.radius_px} for b in sim.bodies])
+
+def set_integrator(name):
+    sim.integrator = name
+
+def step(n, selected):
+    if n:
+        sim.step(n)
+    snap = sim.snapshot()
+    snap["elements"] = sim.orbital_elements(selected) if selected >= 0 else None
+    return json.dumps(snap)
+
+def update_body(i, mass, x, y, vx, vy):
+    sim.update_body(i, mass=mass, x=x, y=y, vx=vx, vy=vy)
+    return bodies()
+
+def add_body():
+    sim.add_body(Body(f"Body {len(sim.bodies)}", 1e-6, 2.0, 0.0, 0.0, 4.4, "#ff66cc", 4))
+    return bodies()
+
+def remove_body(i):
+    if len(sim.bodies) > 1:
+        sim.remove_body(i)
+    return bodies()
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/pyodide@0.26.4/pyodide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const canvas = $("c"), ctx = canvas.getContext("2d");
+const FIELDS = ["mass", "x", "y", "vx", "vy"];
+let py, bodies = [], frame = null, running = false;
+let view = { scale: 100, cx: 0, cy: 0 };
+
+// ---- boot Pyodide and load the shared core as a real package ----
+(async () => {
+  try {
+    const pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/npm/pyodide@0.26.4/" });
+    pyodide.FS.mkdirTree("/home/pyodide/astroorbit");
+    pyodide.FS.writeFile("/home/pyodide/astroorbit/__init__.py", "");
+    pyodide.FS.writeFile("/home/pyodide/astroorbit/core.py", $("core-py").textContent);
+    pyodide.runPython($("glue-py").textContent);
+    py = pyodide.globals;
+    init();
+  } catch (err) {
+    $("loading").textContent = "Could not load Pyodide: " + err;
+  }
+})();
+
+function init() {
+  const n = JSON.parse(py.get("names")());
+  $("preset").innerHTML = n.presets.map((p) => `<option>${p}</option>`).join("");
+  $("integrator").innerHTML = n.integrators.map((p) => `<option>${p}</option>`).join("");
+  $("editor").innerHTML = FIELDS.map((f) =>
+    `<label for="f-${f}">${f}</label><input type="text" id="f-${f}">`).join("");
+  ["run", "step", "reset"].forEach((id) => ($(id).disabled = false));
+  $("loading").remove();
+  loadPreset();
+  requestAnimationFrame(loop);
+}
+
+function selected() { return $("bodies").selectedIndex; }
+
+function setBodies(json, keep = -1) {
+  bodies = JSON.parse(json);
+  $("bodies").innerHTML = bodies.map((b) => `<option>${b.name}</option>`).join("");
+  if (keep >= 0 && keep < bodies.length) $("bodies").selectedIndex = keep;
+  fillEditor();
+  frame = JSON.parse(py.get("step")(0, selected()));
+}
+
+function fillEditor() {
+  const i = selected();
+  FIELDS.forEach((f) => ($("f-" + f).value = i < 0 ? "" : (+bodies[i][f].toPrecision(6)).toString()));
+}
+
+function loadPreset() {
+  setBodies(py.get("load")($("preset").value, $("integrator").value));
+  fitView();
+  draw();
+}
+
+function fitView() {
+  const extent = Math.max(1e-3, ...frame.pos.map(Math.abs)) * 1.2;
+  view = { scale: Math.min(canvas.clientWidth, canvas.clientHeight) / (2 * extent), cx: 0, cy: 0 };
+}
+
+// ---- controls ----
+$("preset").onchange = loadPreset;
+$("reset").onclick = loadPreset;
+$("integrator").onchange = () => py.get("set_integrator")($("integrator").value);
+$("run").onclick = () => { running = !running; $("run").textContent = running ? "Pause" : "Resume"; };
+$("step").onclick = () => { frame = JSON.parse(py.get("step")(+$("speed").value, selected())); draw(); };
+$("trails").onchange = $("labels").onchange = () => draw();
+$("bodies").onchange = fillEditor;
+$("apply").onclick = () => {
+  const i = selected(); if (i < 0) return;
+  const v = FIELDS.map((f) => parseFloat($("f-" + f).value));
+  if (v.some(isNaN)) return;
+  setBodies(py.get("update_body")(i, ...v), i); draw();
+};
+$("add").onclick = () => { setBodies(py.get("add_body")(), bodies.length); draw(); };
+$("del").onclick = () => { const i = selected(); if (i >= 0) { setBodies(py.get("remove_body")(i)); draw(); } };
+
+// ---- zoom & pan ----
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault(); view.scale *= e.deltaY < 0 ? 1.1 : 1 / 1.1; draw();
+}, { passive: false });
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  view.cx -= (e.clientX - drag[0]) / view.scale;
+  view.cy += (e.clientY - drag[1]) / view.scale;
+  drag = [e.clientX, e.clientY]; draw();
+});
+canvas.addEventListener("pointerup", () => (drag = null));
+new ResizeObserver(() => draw()).observe(canvas);
+
+// ---- render loop ----
+function loop() {
+  if (running) frame = JSON.parse(py.get("step")(+$("speed").value, selected()));
+  if (running) draw();
+  requestAnimationFrame(loop);
+}
+
+function draw() {
+  if (!frame) return;
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#0b0e17"; ctx.fillRect(0, 0, w, h);
+  const sx = (x) => w / 2 + (x - view.cx) * view.scale;
+  const sy = (y) => h / 2 - (y - view.cy) * view.scale;
+
+  if ($("trails").checked) {
+    frame.trails.forEach((tr, i) => {
+      if (tr.length < 4) return;
+      ctx.strokeStyle = bodies[i].color; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(sx(tr[0]), sy(tr[1]));
+      for (let k = 2; k < tr.length; k += 2) ctx.lineTo(sx(tr[k]), sy(tr[k + 1]));
+      ctx.stroke();
+    });
+  }
+  bodies.forEach((b, i) => {
+    const x = sx(frame.pos[2 * i]), y = sy(frame.pos[2 * i + 1]);
+    ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(x, y, b.r, 0, 2 * Math.PI); ctx.fill();
+    if ($("labels").checked) {
+      ctx.fillStyle = "#c8cbe0"; ctx.font = "11px system-ui"; ctx.fillText(b.name, x + b.r + 4, y - b.r - 2);
+    }
+  });
+
+  const lines = [`t     = ${frame.t.toFixed(3).padStart(9)}`,
+                 `ΔE/E  = ${frame.energy_error.toExponential(2)}`];
+  const el = frame.elements;
+  if (el) lines.push(`a     = ${el.a.toFixed(4).padStart(9)}`, `e     = ${el.e.toFixed(4).padStart(9)}`);
+  $("readout").textContent = lines.join("\n");
+}
+</script>
+</body>
+</html>

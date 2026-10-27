@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AstroOrbit Web</title>
+<style>
+  :root {
+    --bg: #0b0e17; --panel: #141a2a; --text: #d8dbea; --muted: #8a90a8;
+    --accent: #6ea8ff; --border: #262e45;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 system-ui, -apple-system, sans-serif; }
+  #app { display: flex; height: 100vh; }
+  #view { flex: 1; position: relative; min-width: 0; }
+  canvas { width: 100%; height: 100%; display: block; cursor: grab; }
+  #loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); }
+  aside { width: 300px; padding: 14px; background: var(--panel); border-left: 1px solid var(--border);
+    overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+  h1 { font-size: 16px; margin: 0 0 4px; }
+  label { color: var(--muted); font-size: 12px; }
+  select, input[type=text], button { width: 100%; padding: 6px 8px; background: var(--bg); color: var(--text);
+    border: 1px solid var(--border); border-radius: 6px; font: inherit; }
+  button { cursor: pointer; } button:hover { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  .row { display: flex; gap: 6px; }
+  .checks { display: flex; gap: 14px; color: var(--text); font-size: 13px; }
+  .checks label { color: var(--text); font-size: 13px; }
+  hr { border: 0; border-top: 1px solid var(--border); width: 100%; margin: 4px 0; }
+  #bodies { height: 120px; }
+  .grid { display: grid; grid-template-columns: 50px 1fr; gap: 4px 8px; align-items: center; }
+  #readout { font: 12px/1.6 ui-monospace, Menlo, monospace; white-space: pre; }
+  .note { color: var(--muted); font-size: 12px; }
+  @media (max-width: 760px) {
+    #app { flex-direction: column; height: auto; }
+    #view { height: 60vh; }
+    aside { width: 100%; border-left: 0; border-top: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="view">
+    <canvas id="c"></canvas>
+    <div id="loading">Loading Python (Pyodide)…</div>
+  </div>
+  <aside>
+    <h1>AstroOrbit</h1>
+    <div class="note">Same Python physics core as the desktop app, running in your browser.</div>
+
+    <label for="preset">Preset</label>
+    <select id="preset"></select>
+
+    <label for="integrator" title="Euler: 1st order, energy drifts. RK4: 4th order, accurate short-term, slow drift. Leapfrog: 2nd-order symplectic, energy error stays bounded.">Integrator ⓘ</label>
+    <select id="integrator"></select>
+
+    <label for="speed">Steps per frame (speed)</label>
+    <input id="speed" type="range" min="1" max="50" value="5">
+
+    <div class="row">
+      <button id="run" disabled>Start</button>
+      <button id="step" disabled>Step</button>
+      <button id="reset" disabled>Reset</button>
+    </div>
+    <div class="checks">
+      <label><input type="checkbox" id="trails" checked> Trails</label>
+      <label><input type="checkbox" id="labels" checked> Labels</label>
+    </div>
+
+    <hr>
+    <label for="bodies">Bodies</label>
+    <select id="bodies" size="6"></select>
+    <div class="grid" id="editor"></div>
+    <div class="row">
+      <button id="apply">Apply</button>
+      <button id="add">Add</button>
+      <button id="del">Delete</button>
+    </div>
+
+    <hr>
+    <div id="readout" title="ΔE/E: relative drift of total energy, a check on the integrator. a: semi-major axis, e: eccentricity of the selected body relative to body 0."></div>
+    <div class="note">Scroll to zoom, drag to pan.</div>
+  </aside>
+</div>
+
+<!-- astroorbit/core.py, inlined by build_web.py -->
+<script type="text/python" id="core-py">__CORE_PY__</script>
+
+<!-- Thin glue between JS and the core; returns JSON strings to keep the boundary simple. -->
+<script type="text/python" id="glue-py">
+import json
+from astroorbit.core import PRESETS, INTEGRATORS, Body
+
+sim = None
+
+def names():
+    return json.dumps({"presets": list(PRESETS), "integrators": list(INTEGRATORS)})
+
+def load(preset, integrator):
+    global sim
+    sim = PRESETS[preset]()
+    sim.integrator = integrator
+    return bodies()
+
+def bodies():
+    return json.dumps([{"name": b.name, "mass": b.mass, "x": b.x, "y": b.y, "vx": b.vx,
+                        "vy": b.vy, "color": b.color, "r": b.radius_px} for b in sim.bodies])
+
+def set_integrator(name):
+    sim.integrator = name
+
+def step(n, selected):
+    if n:
+        sim.step(n)
+    snap = sim.snapshot()
+    snap["elements"] = sim.orbital_elements(selected) if selected >= 0 else None
+    return json.dumps(snap)
+
+def update_body(i, mass, x, y, vx, vy):
+    sim.update_body(i, mass=mass, x=x, y=y, vx=vx, vy=vy)
+    return bodies()
+
+def add_body():
+    sim.add_body(Body(f"Body {len(sim.bodies)}", 1e-6, 2.0, 0.0, 0.0, 4.4, "#ff66cc", 4))
+    return bodies()
+
+def remove_body(i):
+    if len(sim.bodies) > 1:
+        sim.remove_body(i)
+    return bodies()
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/pyodide@0.26.4/pyodide.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const canvas = $("c"), ctx = canvas.getContext("2d");
+const FIELDS = ["mass", "x", "y", "vx", "vy"];
+let py, bodies = [], frame = null, running = false;
+let view = { scale: 100, cx: 0, cy: 0 };
+
+// ---- boot Pyodide and load the shared core as a real package ----
+(async () => {
+  try {
+    const pyodide = await loadPyodide({ indexURL: "https://cdn.jsdelivr.net/npm/pyodide@0.26.4/" });
+    pyodide.FS.mkdirTree("/home/pyodide/astroorbit");
+    pyodide.FS.writeFile("/home/pyodide/astroorbit/__init__.py", "");
+    pyodide.FS.writeFile("/home/pyodide/astroorbit/core.py", $("core-py").textContent);
+    pyodide.runPython($("glue-py").textContent);
+    py = pyodide.globals;
+    init();
+  } catch (err) {
+    $("loading").textContent = "Could not load Pyodide: " + err;
+  }
+})();
+
+function init() {
+  const n = JSON.parse(py.get("names")());
+  $("preset").innerHTML = n.presets.map((p) => `<option>${p}</option>`).join("");
+  $("integrator").innerHTML = n.integrators.map((p) => `<option>${p}</option>`).join("");
+  $("editor").innerHTML = FIELDS.map((f) =>
+    `<label for="f-${f}">${f}</label><input type="text" id="f-${f}">`).join("");
+  ["run", "step", "reset"].forEach((id) => ($(id).disabled = false));
+  $("loading").remove();
+  loadPreset();
+  requestAnimationFrame(loop);
+}
+
+function selected() { return $("bodies").selectedIndex; }
+
+function setBodies(json, keep = -1) {
+  bodies = JSON.parse(json);
+  $("bodies").innerHTML = bodies.map((b) => `<option>${b.name}</option>`).join("");
+  if (keep >= 0 && keep < bodies.length) $("bodies").selectedIndex = keep;
+  fillEditor();
+  frame = JSON.parse(py.get("step")(0, selected()));
+}
+
+function fillEditor() {
+  const i = selected();
+  FIELDS.forEach((f) => ($("f-" + f).value = i < 0 ? "" : (+bodies[i][f].toPrecision(6)).toString()));
+}
+
+function loadPreset() {
+  setBodies(py.get("load")($("preset").value, $("integrator").value));
+  fitView();
+  draw();
+}
+
+function fitView() {
+  const extent = Math.max(1e-3, ...frame.pos.map(Math.abs)) * 1.2;
+  view = { scale: Math.min(canvas.clientWidth, canvas.clientHeight) / (2 * extent), cx: 0, cy: 0 };
+}
+
+// ---- controls ----
+$("preset").onchange = loadPreset;
+$("reset").onclick = loadPreset;
+$("integrator").onchange = () => py.get("set_integrator")($("integrator").value);
+$("run").onclick = () => { running = !running; $("run").textContent = running ? "Pause" : "Resume"; };
+$("step").onclick = () => { frame = JSON.parse(py.get("step")(+$("speed").value, selected())); draw(); };
+$("trails").onchange = $("labels").onchange = () => draw();
+$("bodies").onchange = fillEditor;
+$("apply").onclick = () => {
+  const i = selected(); if (i < 0) return;
+  const v = FIELDS.map((f) => parseFloat($("f-" + f).value));
+  if (v.some(isNaN)) return;
+  setBodies(py.get("update_body")(i, ...v), i); draw();
+};
+$("add").onclick = () => { setBodies(py.get("add_body")(), bodies.length); draw(); };
+$("del").onclick = () => { const i = selected(); if (i >= 0) { setBodies(py.get("remove_body")(i)); draw(); } };
+
+// ---- zoom & pan ----
+canvas.addEventListener("wheel", (e) => {
+  e.preventDefault(); view.scale *= e.deltaY < 0 ? 1.1 : 1 / 1.1; draw();
+}, { passive: false });
+let drag = null;
+canvas.addEventListener("pointerdown", (e) => { drag = [e.clientX, e.clientY]; canvas.setPointerCapture(e.pointerId); });
+canvas.addEventListener("pointermove", (e) => {
+  if (!drag) return;
+  view.cx -= (e.clientX - drag[0]) / view.scale;
+  view.cy += (e.clientY - drag[1]) / view.scale;
+  drag = [e.clientX, e.clientY]; draw();
+});
+canvas.addEventListener("pointerup", () => (drag = null));
+new ResizeObserver(() => draw()).observe(canvas);
+
+// ---- render loop ----
+function loop() {
+  if (running) frame = JSON.parse(py.get("step")(+$("speed").value, selected()));
+  if (running) draw();
+  requestAnimationFrame(loop);
+}
+
+function draw() {
+  if (!frame) return;
+  const dpr = window.devicePixelRatio || 1, w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = "#0b0e17"; ctx.fillRect(0, 0, w, h);
+  const sx = (x) => w / 2 + (x - view.cx) * view.scale;
+  const sy = (y) => h / 2 - (y - view.cy) * view.scale;
+
+  if ($("trails").checked) {
+    frame.trails.forEach((tr, i) => {
+      if (tr.length < 4) return;
+      ctx.strokeStyle = bodies[i].color; ctx.lineWidth = 1; ctx.beginPath();
+      ctx.moveTo(sx(tr[0]), sy(tr[1]));
+      for (let k = 2; k < tr.length; k += 2) ctx.lineTo(sx(tr[k]), sy(tr[k + 1]));
+      ctx.stroke();
+    });
+  }
+  bodies.forEach((b, i) => {
+    const x = sx(frame.pos[2 * i]), y = sy(frame.pos[2 * i + 1]);
+    ctx.fillStyle = b.color; ctx.beginPath(); ctx.arc(x, y, b.r, 0, 2 * Math.PI); ctx.fill();
+    if ($("labels").checked) {
+      ctx.fillStyle = "#c8cbe0"; ctx.font = "11px system-ui"; ctx.fillText(b.name, x + b.r + 4, y - b.r - 2);
+    }
+  });
+
+  const lines = [`t     = ${frame.t.toFixed(3).padStart(9)}`,
+                 `ΔE/E  = ${frame.energy_error.toExponential(2)}`];
+  const el = frame.elements;
+  if (el) lines.push(`a     = ${el.a.toFixed(4).padStart(9)}`, `e     = ${el.e.toFixed(4).padStart(9)}`);
+  $("readout").textContent = lines.join("\n");
+}
+</script>
+</body>
+</html>
