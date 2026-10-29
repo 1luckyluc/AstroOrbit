@@ -11,11 +11,11 @@ class OrbitCanvas(tk.Canvas):
         self._drag = None
         self.on_view_change = lambda: None
 
-        self.bind("<MouseWheel>", lambda e: self.zoom(1.1 if e.delta > 0 else 1 / 1.1))
-        self.bind("<Button-4>", lambda e: self.zoom(1.1))  # Linux scroll
-        self.bind("<Button-5>", lambda e: self.zoom(1 / 1.1))
+        #self.bind("<MouseWheel>", lambda e: self.zoom(1.1 if e.delta > 0 else 1 / 1.1))
+        #self.bind("<Button-4>", lambda e: self.zoom(1.1))  # Linux scroll
+        #self.bind("<Button-5>", lambda e: self.zoom(1 / 1.1))
         self.bind("<ButtonPress-1>", self._pan_start)
-        self.bind("<B1-Motion>", self._pan_move)
+        #self.bind("<B1-Motion>", self._pan_move)
         self.bind("<Configure>", lambda e: self.on_view_change())
 
     # ---- view ----
