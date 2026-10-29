@@ -13,8 +13,23 @@ def leapfrog(pos, vel, accel_fn, dt):
     return new_pos, new_vel
 
 def rk4(pos, vel, accel_fn, dt):
-    # TODO: four stages k1..k4 on the state (pos, vel) with derivative (vel, accel_fn(pos))
-    raise NotImplementedError("RK4")
+    # you might want to have a look in the Newman on 8.1.3 for RK4, 8.2 for "DIFFERENTIAL EQUATIONS WITH MORE THAN ONE VARIABLE" and 8.3 for "SECOND-ORDER DIFFERENTIAL EQUATIONS". All together this gives:
+    k1_pos = vel
+    k1_vel = accel_fn(pos)
+
+    k2_pos = vel + dt * k1_vel / 2
+    k2_vel = accel_fn(pos + dt * k1_pos / 2)
+
+    k3_pos = vel + dt * k2_vel / 2
+    k3_vel = accel_fn(pos + dt * k2_pos / 2)
+
+    k4_pos = vel + dt * k3_vel
+    k4_vel = accel_fn(pos + dt * k3_pos)
+
+    new_pos = pos + dt / 6 * (k1_pos + 2*k2_pos + 2*k3_pos + k4_pos)
+    new_vel = vel + dt / 6 * (k1_vel + 2*k2_vel + 2*k3_vel + k4_vel)
+
+    return new_pos, new_vel
 
 INTEGRATORS = {
     "Euler": euler,
