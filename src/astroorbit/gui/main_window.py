@@ -12,7 +12,7 @@ from astroorbit.modes import MODES
 from astroorbit.physics.body import Body
 from astroorbit.presets.loader import list_presets
 from astroorbit.simulation import Simulation, State
-from astroorbit.integrators import INTEGRATORS
+from astroorbit.physics.integrators import INTEGRATORS
 
 FRAME_MS = 16
 

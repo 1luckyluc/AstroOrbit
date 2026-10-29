@@ -6,7 +6,7 @@ and calls advance() on its timer; nothing here imports the GUI.
 from enum import Enum
 
 from astroorbit.physics import forces
-from astroorbit.integrators import INTEGRATORS
+from astroorbit.physics.integrators import INTEGRATORS
 
 class State(Enum):
     STOPPED = "stopped"
