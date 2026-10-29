@@ -96,15 +96,12 @@ class MainWindow:
     # ------------------------------------------------------------ controls ---
     def command(self, cmd):
         self.message = ""
-        if cmd in ("start", "step"):
-            try:
-                self.sim.dt = float(self.controls.dt.get())
-            except ValueError:
-                self.message = "dt must be a number"
-                self.redraw()
-                return
-        if cmd == "step":
-            self._advance()
+        try:
+            self.sim.dt = float(self.controls.dt.get())
+        except ValueError:
+            self.message = "dt must be a number"
+            self.redraw()
+            return
         else:
             getattr(self.sim, cmd)()  # start / pause / resume / stop / reset
         if cmd == "reset":

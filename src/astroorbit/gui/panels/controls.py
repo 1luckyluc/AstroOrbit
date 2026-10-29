@@ -5,7 +5,6 @@ from tkinter import ttk
 from astroorbit.gui.help import HELP, Tooltip
 from astroorbit.simulation import State
 
-
 class ControlPanel(ttk.LabelFrame):
     """Calls on_preset(name), on_integrator(name), on_command(cmd), on_view()."""
 
@@ -32,23 +31,22 @@ class ControlPanel(ttk.LabelFrame):
 
         row = ttk.Frame(self)
         row.pack(fill="x", pady=(6, 0))
-        # ttk.Label(row, text="dt").pack(side="left")
-        # dt_entry = ttk.Entry(row, textvariable=self.dt, width=10)
-        # dt_entry.pack(side="left", padx=(4, 12))
-        # Tooltip(dt_entry, HELP["dt"])
+        ttk.Label(row, text="dt").pack(side="left")
+        dt_entry = ttk.Entry(row, textvariable=self.dt, width=10)
+        dt_entry.pack(side="left", padx=(4, 12))
+        Tooltip(dt_entry, HELP["dt"])
         ttk.Label(row, text="speed").pack(side="left")
         speed = ttk.Scale(row, from_=1, to=50, variable=self.speed, orient="horizontal")
         speed.pack(side="left", fill="x", expand=True, padx=(4, 0))
         Tooltip(speed, HELP["speed"])
 
         self.buttons = {}
-        for labels in (("Start", "Pause", "Resume"), ("Step", "Stop", "Reset")):
-            row = ttk.Frame(self)
-            row.pack(fill="x", pady=(6, 0))
-            for label in labels:
-                b = ttk.Button(row, text=label, command=lambda c=label.lower(): on_command(c))
-                b.pack(side="left", expand=True, fill="x")
-                self.buttons[label.lower()] = b
+        row = ttk.Frame(self)
+        row.pack(fill="x", pady=(6, 0))
+        for label in ("Start", "Pause", "Resume", "Stop", "Reset"):
+            b = ttk.Button(row, text=label, command=lambda c=label.lower(): on_command(c))
+            b.pack(side="left", expand=True, fill="x")
+            self.buttons[label.lower()] = b
 
         row = ttk.Frame(self)
         row.pack(fill="x", pady=(6, 0))
