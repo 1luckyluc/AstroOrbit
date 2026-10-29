@@ -5,9 +5,8 @@ and calls advance() on its timer; nothing here imports the GUI.
 """
 from enum import Enum
 
-from astroorbit.integrators import get_integrator
 from astroorbit.physics import forces
-
+from astroorbit.integrators import INTEGRATORS
 
 class State(Enum):
     STOPPED = "stopped"
@@ -20,7 +19,7 @@ class Simulation:
         self.mode = mode
         self.system = system
         self._initial = system.copy()
-        self.integrator = get_integrator(integrator or mode.default_integrator)
+        self.integrator = INTEGRATORS[integrator or mode.default_integrator]
         self.dt = dt or mode.default_dt
         self.t = 0.0
         self.state = State.STOPPED
@@ -56,13 +55,13 @@ class Simulation:
         self.history = self._empty_history()
 
     def set_integrator(self, name):
-        self.integrator = get_integrator(name)
+        self.integrator = INTEGRATORS[name]
 
     # ---- time stepping ----
     def advance(self, n_steps=1):
         s = self.system
         for _ in range(n_steps):
-            s.pos, s.vel = self.integrator.step(s.pos, s.vel, self.accel, self.dt)
+            s.pos, s.vel = self.integrator(s.pos, s.vel, self.accel, self.dt)
             self.t += self.dt
         self._record()
 

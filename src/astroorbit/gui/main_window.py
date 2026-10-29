@@ -8,11 +8,11 @@ from astroorbit.gui.help import Tooltip
 from astroorbit.gui.panels.bodies import BodyPanel
 from astroorbit.gui.panels.controls import ControlPanel
 from astroorbit.gui.plots import PlotsPanel
-from astroorbit.integrators import available_integrators
 from astroorbit.modes import MODES
 from astroorbit.physics.body import Body
 from astroorbit.presets.loader import list_presets
 from astroorbit.simulation import Simulation, State
+from astroorbit.integrators import INTEGRATORS
 
 FRAME_MS = 16
 
@@ -74,7 +74,7 @@ class MainWindow:
         self.mode = MODES[key]
         self.presets = {p.name: p for p in list_presets(key)}
         self.controls.set_presets(list(self.presets))
-        self.controls.set_integrators(available_integrators(), self.mode.default_integrator)
+        self.controls.set_integrators(list(INTEGRATORS.keys()), self.mode.default_integrator)
         self.plots.set_mode(self.mode)
         if self.presets:
             self.load_preset(self.controls.preset.get())
@@ -155,7 +155,7 @@ class MainWindow:
     def update_status(self):
         s, u = self.sim, self.mode.units
         text = (f"{self.mode.label}  ·  {s.state.value}  ·  t = {s.t:.3f} {u.time}  ·  "
-                f"{s.integrator.name}  ·  {len(s.system)} bodies")
+                f"{s.integrator.__name__}  ·  {len(s.system)} bodies")
         self.status.config(text=f"{text}   |   {self.message}" if self.message else text)
 
 
