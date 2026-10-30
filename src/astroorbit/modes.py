@@ -25,6 +25,7 @@ MODES = {
         description="Planets around a star: long-lived, near-circular orbits. "
                     "Track semi-major axis, eccentricity and energy conservation.",
         units=ASTRO,
+        default_dt=1e-3,
         plots=("Distance to Sun",),
     ),
     "comet": Mode(
@@ -42,6 +43,7 @@ MODES = {
         description="Few-body systems that are extremely sensitive to initial conditions. "
                     "Compare two almost identical runs and watch them diverge.",
         units=NBODY,
-        plots=("Distance to Sun",),
+        default_dt=1e-3,
+        plots=("",),
     ),
 }

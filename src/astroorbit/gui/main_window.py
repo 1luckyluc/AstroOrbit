@@ -59,7 +59,7 @@ class MainWindow:
         right = ttk.Frame(main, padding=10)
         self.controls = ControlPanel(right, on_preset=self.load_preset,
                                      on_integrator=self.set_integrator,
-                                     on_command=self.command, on_view=self.redraw)
+                                     on_command=self.command, on_view=self.redraw, on_dt=self.apply_dt)
         self.controls.pack(fill="x")
         self.body_panel = BodyPanel(right, on_select=lambda i: self.redraw(),
                                     on_add=self.add_body, on_apply=self.apply_body,
@@ -83,7 +83,7 @@ class MainWindow:
         preset = self.presets[name]
         self.sim = Simulation(preset.to_system(), self.mode,
                               integrator=self.controls.integrator.get(), dt=preset.dt)
-        self.controls.dt.set(f"{self.sim.dt:g}")
+        self.controls.set_dt(self.sim.dt)
         self.message = preset.description
         self.plots.clear()
         self.root.update_idletasks()
@@ -95,16 +95,13 @@ class MainWindow:
         self.redraw()
 
     # ------------------------------------------------------------ controls ---
+    def apply_dt(self, dt):
+        self.sim.dt = dt
+        self.redraw()
+
     def command(self, cmd):
         self.message = ""
-        try:
-            self.sim.dt = float(self.controls.dt.get())
-        except ValueError:
-            self.message = "dt must be a number"
-            self.redraw()
-            return
-        else:
-            getattr(self.sim, cmd)()  # start / pause / resume / stop / reset
+        getattr(self.sim, cmd)()  # start / pause / resume / stop / reset
         if cmd in ("start", "reset"):
             self.plots.clear()
         if cmd == "reset":
