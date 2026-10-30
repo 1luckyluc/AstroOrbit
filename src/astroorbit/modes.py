@@ -10,7 +10,6 @@ from pathlib import Path
 from astroorbit.physics.units import ASTRO, NBODY, UnitSystem
 
 
-
 PRESET_DIR = Path(__file__).parent / "presets"
 
 def load_presets(mode_key):

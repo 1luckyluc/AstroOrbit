@@ -4,6 +4,8 @@ Owns the run state (stopped / running / paused). The GUI only sends commands
 and calls advance() on its timer; nothing here imports the GUI.
 """
 from enum import Enum
+import numpy as np #for appending past pos. could make it into a separate function cause it looks ugly
+
 
 from astroorbit.physics import forces
 from astroorbit.physics.integrators import INTEGRATORS
@@ -68,6 +70,7 @@ class Simulation:
         s = self.system
         for _ in range(n_steps):
             s.pos, s.vel = self.integrator(s.pos, s.vel, self.accel, self.dt)
+            s.pos_past = np.append(s.pos_past, [*s.pos])
             self.t += self.dt
         self._record()
 
