@@ -1,0 +1,28 @@
+============================================================
+TEST: potential_energy
+
+Module:          analysis/conservation.py
+Tested by:       Luca
+Date:            30.10.2026
+Dependencies:    Python, NumPy
+
+1. TEST OBJECTIVE
+⸻
+Verify that the function potential_energy() correctly calculates
+the gravitational potential energy of an N-body system.
+
+
+2. TEST METHOD
+⸻
+Use REBOUND as reference. Write a short script to calculate:
+4 bodies, G = 1:
+  m = 1, 2, 3, 4
+  (x, y) = (0, 0), (1, 0), (0, 2), (3, 4)
+All velocities 0
+sim.energy() = U = -12.100337132350953
+Pass: relative error < 1e-12.
+
+
+3. TEST STATUS
+⸻
+Status: PASSED
