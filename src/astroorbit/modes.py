@@ -4,8 +4,19 @@ A mode is configuration, not code: which units, which force model, sensible
 defaults and which plots make sense. Presets declare the mode they belong to.
 """
 from dataclasses import dataclass
+import json
+from pathlib import Path
 
 from astroorbit.physics.units import ASTRO, NBODY, UnitSystem
+
+
+
+PRESET_DIR = Path(__file__).parent / "presets"
+
+def load_presets(mode_key):
+    """All presets of one mode, as {name: JSON contents}."""
+    presets = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(PRESET_DIR.glob("*.json"))]
+    return {p["name"]: p for p in presets if p["mode"] == mode_key}
 
 @dataclass(frozen=True)
 class Mode:
@@ -26,7 +37,7 @@ MODES = {
                     "Track semi-major axis, eccentricity and energy conservation.",
         units=ASTRO,
         default_dt=1e-3,
-        plots=("Distance to Sun",),
+        plots=("Total System Energy", "Semi-major axis", "Eccentricity",),
     ),
     "comet": Mode(
         key="comet",
@@ -35,7 +46,7 @@ MODES = {
                     "perturbed by the planets. Small time steps near perihelion.",
         units=ASTRO,
         default_dt=1e-4,
-        plots=("Distance to Sun",),
+        plots=("Total System Energy", "Distance to Sun",),
     ),
     "chaos": Mode(
         key="chaos",
@@ -44,6 +55,6 @@ MODES = {
                     "Compare two almost identical runs and watch them diverge.",
         units=NBODY,
         default_dt=1e-3,
-        plots=("",),
+        plots=("Total System Energy",),
     ),
 }

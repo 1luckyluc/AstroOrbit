@@ -8,12 +8,14 @@ BG = "#0b0e17"
 TEXT = "#c8cbe0"
 REFRESH_EVERY = 10  # redraw once every this many frames: matplotlib is slow
 
-# plot title (from modes.py) -> key in Simulation.history
+MIN_SPAN = {"a": 0.1, "e": 0.1, "r": 0.1, "E": 0.1}  # smallest y-range per plot: stops noise being magnified
+
 HISTORY_KEYS = {
     "Semi-major axis": "a",
     "Eccentricity": "e",
     "Energy error": "energy_error",
     "Distance to Sun": "r",
+    "Total System Energy": "E",
 }
 
 class PlotsPanel(ttk.LabelFrame):
@@ -34,6 +36,7 @@ class PlotsPanel(ttk.LabelFrame):
             ax = self.fig.add_subplot(1, len(mode.plots), n + 1, facecolor=BG)
             ax.set_title(title, color=TEXT, fontsize=9)
             ax.tick_params(colors=TEXT, labelsize=7)
+            ax.yaxis.get_offset_text().set_fontsize(7)
             for spine in ax.spines.values():
                 spine.set_color("#444a60")
             if title in HISTORY_KEYS:
@@ -61,4 +64,10 @@ class PlotsPanel(ttk.LabelFrame):
                 self.lines[key, name].set_data(t, values)
             ax.relim()
             ax.autoscale_view()
+            low, high = ax.get_ylim()
+            span = MIN_SPAN.get(key, 0)
+            if high - low < span:
+                middle = (low + high) / 2
+                ax.set_ylim(middle - span / 2, middle + span / 2, auto=True)
+
         self.canvas.draw_idle()

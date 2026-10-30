@@ -8,9 +8,9 @@ from astroorbit.gui.help import Tooltip
 from astroorbit.gui.panels.bodies import BodyPanel
 from astroorbit.gui.panels.controls import ControlPanel
 from astroorbit.gui.plots import PlotsPanel
-from astroorbit.modes import MODES
+from astroorbit.modes import MODES, load_presets
 from astroorbit.physics.body import Body
-from astroorbit.presets.loader import list_presets
+from astroorbit.physics.system import System
 from astroorbit.simulation import Simulation, State
 from astroorbit.physics.integrators import INTEGRATORS
 
@@ -72,7 +72,7 @@ class MainWindow:
     # ------------------------------------------------------- modes/presets ---
     def load_mode(self, key):
         self.mode = MODES[key]
-        self.presets = {p.name: p for p in list_presets(key)}
+        self.presets = load_presets(key)
         self.controls.set_presets(list(self.presets))
         self.controls.set_integrators(list(INTEGRATORS.keys()), self.mode.default_integrator)
         self.plots.set_mode(self.mode)
@@ -81,10 +81,11 @@ class MainWindow:
 
     def load_preset(self, name):
         preset = self.presets[name]
-        self.sim = Simulation(preset.to_system(), self.mode,
-                              integrator=self.controls.integrator.get(), dt=preset.dt)
+        system = System([Body(**b) for b in preset["bodies"]])
+        self.sim = Simulation(system, self.mode,
+                            integrator=self.controls.integrator.get(), dt=preset["dt"])
         self.controls.set_dt(self.sim.dt)
-        self.message = preset.description
+        self.message = preset["description"]
         self.plots.clear()
         self.root.update_idletasks()
         self.canvas.fit(self.sim.system)
