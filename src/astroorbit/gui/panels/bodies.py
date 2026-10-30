@@ -5,6 +5,7 @@ from tkinter import ttk
 from astroorbit.gui.help import HELP, Tooltip
 
 FIELDS = ("name", "mass", "x", "y", "vx", "vy")
+FIELDS_DISPLAY = ("Name", "Mass (solar mass)", "x (AU)", "y (AU)", "vx (AU/year)", "vy (AU/year)")
 
 
 class BodyPanel(ttk.LabelFrame):
@@ -21,7 +22,7 @@ class BodyPanel(ttk.LabelFrame):
         grid.pack(fill="x", pady=6)
         grid.columnconfigure(1, weight=1)
         for row, key in enumerate(FIELDS):
-            ttk.Label(grid, text=key, width=6).grid(row=row, column=0, sticky="w")
+            ttk.Label(grid, text=FIELDS_DISPLAY[row], width=15).grid(row=row, column=0, sticky="w")
             var = tk.StringVar()
             entry = ttk.Entry(grid, textvariable=var)
             entry.grid(row=row, column=1, sticky="ew", pady=1)
