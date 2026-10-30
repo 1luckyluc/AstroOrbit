@@ -147,6 +147,9 @@ class MainWindow:
     def _tick(self):
         if self.sim and self.sim.state is State.RUNNING:
             self._advance()
+            if self.sim.ejected:
+                self.message = f"{', '.join(self.sim.ejected)} ejected. Press Reset to start again"
+          
             colors = dict(zip(self.sim.system.names, self.sim.system.colors))
             self.plots.refresh(self.sim.history, colors)
             self.redraw()

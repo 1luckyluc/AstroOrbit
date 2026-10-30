@@ -1,0 +1,10 @@
+{
+  "name": "Parabolic comet (e = 1)",
+  "mode": "comet",
+  "description": "At escape speed (perihelion 0.587 AU): the borderline case that never returns, with total orbital energy zero. Starts inbound at 3 AU.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "Sun",   "mass": 1.0,     "x": 0.0,    "y": 0.0,     "vx": 0.0,   "vy": 0.0,     "color": "#ffd34d", "radius_px": 8},
+    {"name": "Comet", "mass": 1.0e-16, "x": -1.826, "y": 2.38028, "vx": 4.601, "vy": -2.2693, "color": "#9fe8ff", "radius_px": 3}
+  ]
+}

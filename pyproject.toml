@@ -7,7 +7,7 @@ name = "astroorbit"
 version = "0.1.0"
 description = "Interactive N-body orbit simulator"
 requires-python = ">=3.8"
-dependencies = ["numpy"]
+dependencies = ["numpy", "matplotlib"]
 
 [project.optional-dependencies]
 dev = ["pytest"]
@@ -19,7 +19,7 @@ astroorbit = "astroorbit.gui.main_window:main"
 where = ["src"]
 
 [tool.setuptools.package-data]
-astroorbit = ["presets/data/*.json"]
+astroorbit = ["presets/*.json"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

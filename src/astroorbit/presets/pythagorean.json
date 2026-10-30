@@ -1,5 +1,5 @@
 {
-  "name": "Pythagorean 3-body (Burrau)",
+  "name": "Pythagorean 3-body",
   "mode": "chaos",
   "description": "Masses 3, 4, 5 at rest on a 3-4-5 triangle, G = 1. Chaotic close encounters, then one body is ejected.",
   "dt": 0.0001,

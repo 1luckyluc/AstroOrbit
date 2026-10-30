@@ -1,0 +1,10 @@
+{
+  "name": "Sun and Earth",
+  "mode": "planet",
+  "description": "Sun and Earth. Units: AU, yr, Msun.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "Sun",     "mass": 1.0,     "x": 0.0,   "y": 0.0, "vx": 0.0, "vy": 0.0,    "color": "#ffd34d", "radius_px": 9},
+    {"name": "Earth",   "mass": 3.0e-6,  "x": 1.0,   "y": 0.0, "vx": 0.0, "vy": 6.283,  "color": "#4da6ff", "radius_px": 4}
+  ]
+}

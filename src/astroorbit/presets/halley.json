@@ -1,10 +1,10 @@
 {
-  "name": "Comet",
+  "name": "Elliptical comet (e = 0.967)",
   "mode": "comet",
-  "description": "A retrograde comet (a = 17.8 AU, e = 0.967) starting at perihelion, with Jupiter as a perturber.",
-  "dt": 0.0001,
+  "description": "Bound comet: it comes back after about 75 years. Starts inbound at 3 AU.",
+  "dt": 0.001,
   "bodies": [
-    {"name": "Sun",     "mass": 1.0,     "x": 0.0,   "y": 0.0, "vx": 0.0, "vy": 0.0,     "color": "#ffd34d", "radius_px": 8},
-    {"name": "Comet",   "mass": 1.0e-16, "x": 0.587, "y": 0.0, "vx": 0.0, "vy": -11.502, "color": "#9fe8ff", "radius_px": 3}
+    {"name": "Sun",   "mass": 1.0,     "x": 0.0,      "y": 0.0,     "vx": 0.0,     "vy": 0.0,      "color": "#ffd34d", "radius_px": 8},
+    {"name": "Comet", "mass": 1.0e-16, "x": -1.90829, "y": 2.31483, "vx": 4.51184, "vy": -1.93503, "color": "#9fe8ff", "radius_px": 3}
   ]
 }

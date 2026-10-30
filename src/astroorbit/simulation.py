@@ -7,8 +7,9 @@ from enum import Enum
 
 from astroorbit.physics import forces
 from astroorbit.physics.integrators import INTEGRATORS
-from astroorbit.analysis.conservation import relative_drift, total_energy
+from astroorbit.analysis.conservation import total_energy
 from astroorbit.analysis.elements import orbital_elements
+from astroorbit.analysis.stability import ejected_bodies
 
 class State(Enum):
     STOPPED = "stopped"
@@ -26,6 +27,8 @@ class Simulation:
         self.state = State.STOPPED
         self._force = getattr(forces, mode.force_model)
         self.history = self._empty_history()
+        self.max_distance = 10 * abs(system.pos).max()
+        self.ejected = []  # names of bodies that have left, each reported once
 
     def accel(self, pos):
         return self._force(pos, self.system.masses, self.mode.units.G)
@@ -55,6 +58,7 @@ class Simulation:
         self.t = 0.0
         self.state = State.STOPPED
         self.history = self._empty_history()
+        self.ejected = []
 
     def set_integrator(self, name):
         self.integrator = INTEGRATORS[name]
@@ -95,7 +99,8 @@ class Simulation:
             dy = s.pos[2 * i + 1] - s.pos[1]
             h["r"].setdefault(s.names[i], []).append((self.t, (dx * dx + dy * dy) ** 0.5))
             
-        drift = relative_drift(self._energy(), self._E0)
-        h["energy_error"].setdefault("Total", []).append((self.t, drift))
         h["E"].setdefault("Total", []).append((self.t, self._energy()))
-                
+        for i in ejected_bodies(s.pos, s.vel, s.masses, self.mode.units.G, self.max_distance):
+            if s.names[i] not in self.ejected:
+                self.ejected.append(s.names[i])
+                self.state = State.PAUSED

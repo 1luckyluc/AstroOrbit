@@ -21,15 +21,3 @@ def potential_energy(pos, masses, G):
 def total_energy(pos, vel, masses, G):
     return kinetic_energy(vel, masses) + potential_energy(pos, masses, G)
 
-def angular_momentum(pos, vel, masses):
-    """z-component of the total angular momentum (2D)."""
-    Lz = 0.0
-    for i in range(len(masses)):
-        Lz += masses[i] * (pos[2 * i] * vel[2 * i + 1] - pos[2 * i + 1] * vel[2 * i])
-    return Lz
-
-def relative_drift(value, initial):
-    """(value - initial) / |initial|, the quantity to plot over time."""
-    if np.any(initial == 0):
-        raise ValueError("Initial value cannot be zero")
-    return (value - initial) / np.abs(initial)
