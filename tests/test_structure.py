@@ -2,7 +2,7 @@
 import numpy as np
 import pytest
 
-from astroorbit.integrators import available_integrators
+from astroorbit.physics import integrators
 from astroorbit.modes import MODES
 from astroorbit.physics.body import Body
 from astroorbit.physics.system import System
@@ -11,7 +11,7 @@ from astroorbit.simulation import Simulation, State
 
 
 def test_integrators_registered():
-    assert set(available_integrators()) == {"Euler", "RK4", "Leapfrog"}
+    assert set(integrators.INTEGRATORS) == {"Euler", "RK4", "Leapfrog"}
 
 
 @pytest.mark.parametrize("mode", list(MODES))
