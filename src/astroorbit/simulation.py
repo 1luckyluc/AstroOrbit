@@ -7,12 +7,13 @@ from enum import Enum
 
 from astroorbit.physics import forces
 from astroorbit.physics.integrators import INTEGRATORS
+from astroorbit.analysis.conservation import relative_drift, total_energy
+from astroorbit.analysis.elements import orbital_elements
 
 class State(Enum):
     STOPPED = "stopped"
     RUNNING = "running"
     PAUSED = "paused"
-
 
 class Simulation:
     def __init__(self, system, mode, integrator=None, dt=None):
@@ -33,6 +34,7 @@ class Simulation:
     def start(self):
         if self.state is State.STOPPED:
             self.history = self._empty_history()
+            self._E0 = self._energy()
         self.state = State.RUNNING
 
     def pause(self):
@@ -66,10 +68,28 @@ class Simulation:
         self._record()
 
     def _empty_history(self):
-        return {"t": []}
+        return {"t": [], "pos": [], "vel": [], "a": {}, "e": {}, "energy_error": {}}
+
+    def _energy(self):
+        s = self.system
+        return total_energy(s.pos, s.vel, s.masses, self.mode.units.G)
+
+    def _elements(self, i):
+        """Orbital elements of body i around body 0."""
+        s = self.system
+        rel_pos = s.pos[2 * i:2 * i + 2] - s.pos[:2]
+        rel_vel = s.vel[2 * i:2 * i + 2] - s.vel[:2]
+        return orbital_elements(rel_pos, rel_vel, self.mode.units.G * (s.masses[0] + s.masses[i]))
 
     def _record(self):
-        self.history["t"].append(self.t)
-        self.history["pos"] = self.history.get("pos", []) + [self.system.pos.copy()]
-        self.history["vel"] = self.history.get("vel", []) + [self.system.vel.copy()]
+        s, h = self.system, self.history
+        h["t"].append(self.t)
+        h["pos"].append(s.pos.copy())
+        h["vel"].append(s.vel.copy())
+        for i in range(1, len(s)):
+            el = self._elements(i)
+            h["a"].setdefault(s.names[i], []).append((self.t, el["a"]))
+            h["e"].setdefault(s.names[i], []).append((self.t, el["e"]))
+        drift = relative_drift(self._energy(), self._E0)
+        h["energy_error"].setdefault("Total", []).append((self.t, drift))
                 

@@ -1,5 +1,5 @@
 """Conserved quantities, used to check the integrators."""
-
+import numpy as np
 
 def kinetic_energy(vel, masses):
     ke = 0.0

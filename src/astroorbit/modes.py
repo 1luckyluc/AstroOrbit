@@ -7,7 +7,6 @@ from dataclasses import dataclass
 
 from astroorbit.physics.units import ASTRO, NBODY, UnitSystem
 
-
 @dataclass(frozen=True)
 class Mode:
     key: str
@@ -18,7 +17,6 @@ class Mode:
     default_integrator: str = "Leapfrog"
     default_dt: float = 1e-3
     plots: tuple = ()  # quantities offered in the plots panel
-
 
 MODES = {
     "planet": Mode(

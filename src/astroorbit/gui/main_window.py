@@ -85,6 +85,7 @@ class MainWindow:
                               integrator=self.controls.integrator.get(), dt=preset.dt)
         self.controls.dt.set(f"{self.sim.dt:g}")
         self.message = preset.description
+        self.plots.clear()
         self.root.update_idletasks()
         self.canvas.fit(self.sim.system)
         self.refresh_bodies()
@@ -104,6 +105,8 @@ class MainWindow:
             return
         else:
             getattr(self.sim, cmd)()  # start / pause / resume / stop / reset
+        if cmd in ("start", "reset"):
+            self.plots.clear()
         if cmd == "reset":
             self.refresh_bodies()
         self.redraw()
@@ -138,7 +141,8 @@ class MainWindow:
     def _tick(self):
         if self.sim and self.sim.state is State.RUNNING:
             self._advance()
-            self.plots.refresh(self.sim.history)
+            colors = dict(zip(self.sim.system.names, self.sim.system.colors))
+            self.plots.refresh(self.sim.history, colors)
             self.redraw()
         self.root.after(FRAME_MS, self._tick)
 

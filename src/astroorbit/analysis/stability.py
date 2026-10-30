@@ -1,6 +1,5 @@
 """Stability indicators: close encounters, chaos, resonances."""
 
-
 def close_encounters(pos, threshold):
     """Pairs (i, j) closer than `threshold`."""
     distances = []
