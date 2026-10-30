@@ -68,7 +68,7 @@ class Simulation:
         self._record()
 
     def _empty_history(self):
-        return {"t": [], "pos": [], "vel": [], "a": {}, "e": {}, "energy_error": {}}
+        return {"t": [], "pos": [], "vel": [], "a": {}, "e": {}, "energy_error": {}, "r": {}}
 
     def _energy(self):
         s = self.system
@@ -90,6 +90,10 @@ class Simulation:
             el = self._elements(i)
             h["a"].setdefault(s.names[i], []).append((self.t, el["a"]))
             h["e"].setdefault(s.names[i], []).append((self.t, el["e"]))
+            dx = s.pos[2 * i] - s.pos[0]
+            dy = s.pos[2 * i + 1] - s.pos[1]
+            h["r"].setdefault(s.names[i], []).append((self.t, (dx * dx + dy * dy) ** 0.5))
+
         drift = relative_drift(self._energy(), self._E0)
         h["energy_error"].setdefault("Total", []).append((self.t, drift))
                 

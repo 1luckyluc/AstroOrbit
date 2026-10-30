@@ -25,7 +25,7 @@ MODES = {
         description="Planets around a star: long-lived, near-circular orbits. "
                     "Track semi-major axis, eccentricity and energy conservation.",
         units=ASTRO,
-        plots=("Semi-major axis", "Eccentricity", "Energy error"),
+        plots=("Distance to Sun",),
     ),
     "comet": Mode(
         key="comet",
@@ -34,7 +34,7 @@ MODES = {
                     "perturbed by the planets. Small time steps near perihelion.",
         units=ASTRO,
         default_dt=1e-4,
-        plots=("Distance to Sun", "Eccentricity", "Perihelion distance"),
+        plots=("Distance to Sun",),
     ),
     "chaos": Mode(
         key="chaos",
@@ -42,6 +42,6 @@ MODES = {
         description="Few-body systems that are extremely sensitive to initial conditions. "
                     "Compare two almost identical runs and watch them diverge.",
         units=NBODY,
-        plots=("Energy error", "Twin-run separation", "Lyapunov estimate"),
+        plots=("Distance to Sun",),
     ),
 }

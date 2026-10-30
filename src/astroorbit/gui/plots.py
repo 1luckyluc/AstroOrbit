@@ -13,8 +13,8 @@ HISTORY_KEYS = {
     "Semi-major axis": "a",
     "Eccentricity": "e",
     "Energy error": "energy_error",
+    "Distance to Sun": "r",
 }
-
 
 class PlotsPanel(ttk.LabelFrame):
     def __init__(self, master):

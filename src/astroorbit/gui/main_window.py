@@ -133,6 +133,10 @@ class MainWindow:
         self.refresh_bodies(keep=i)
 
     def delete_body(self, i):
+        if i == 0 and self.mode.key in ("planet", "comet"):
+            self.message = "The Sun can't be removed in this mode"
+            self.redraw()
+            return
         if len(self.sim.system) > 1:
             self.sim.system.remove_body(i)
             self.refresh_bodies()
