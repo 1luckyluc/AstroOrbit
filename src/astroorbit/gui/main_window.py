@@ -61,7 +61,7 @@ class MainWindow:
                                      on_integrator=self.set_integrator,
                                      on_command=self.command, on_view=self.redraw, on_dt=self.apply_dt)
         self.controls.pack(fill="x")
-        self.body_panel = BodyPanel(right, on_select=lambda i: self.redraw(),
+        self.body_panel = BodyPanel(right, on_select=self.select_body,
                                     on_add=self.add_body, on_apply=self.apply_body,
                                     on_delete=self.delete_body)
         self.body_panel.pack(fill="both", expand=True, pady=(10, 0))
@@ -120,9 +120,13 @@ class MainWindow:
         self.body_panel.set_bodies(self.sim.system.bodies(), keep)
         self.redraw()
 
-    def add_body(self):
+    def select_body(self, i):
+        self.refresh_bodies(keep=i)
+
+    def add_body(self, values):
         n = len(self.sim.system)
-        self.sim.system.add_body(Body(f"Body {n}", 1e-6, 2.0, 0.0, 0.0, 4.4, "#ff66cc", 4))
+        values["name"] = values["name"] or f"Body {n}"
+        self.sim.system.add_body(Body(**values, color="#ff66cc", radius_px=4))
         self.refresh_bodies(keep=n)
 
     def apply_body(self, i, values):
