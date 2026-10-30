@@ -1,0 +1,10 @@
+{
+  "name": "Hyperbolic comet (e = 1.5)",
+  "mode": "comet",
+  "description": "Faster than escape speed (perihelion 0.587 AU): Flies past once and leaves for good. Starts inbound at 3 AU.",
+  "dt": 0.001,
+  "bodies": [
+    {"name": "Sun",   "mass": 1.0,     "x": 0.0,      "y": 0.0,     "vx": 0.0,     "vy": 0.0,      "color": "#ffd34d", "radius_px": 8},
+    {"name": "Comet", "mass": 1.0e-16, "x": -1.02167, "y": 2.82067, "vx": 4.87666, "vy": -6.01369, "color": "#9fe8ff", "radius_px": 3}
+  ]
+}
