@@ -1,14 +1,18 @@
-"""The plumbing: registry, modes, presets, system editing, simulation state machine."""
+
 import numpy as np
 import pytest
 
 from astroorbit.physics import integrators
-from astroorbit.modes import MODES
 from astroorbit.physics.body import Body
 from astroorbit.physics.system import System
-from astroorbit.presets.loader import list_presets
+from astroorbit.modes import MODES, load_presets
 from astroorbit.simulation import Simulation, State
 
+def all_presets():
+    return [preset for mode in MODES for preset in load_presets(mode).values()]
+
+def to_system(preset):
+    return System([Body(**b) for b in preset["bodies"]])
 
 def test_integrators_registered():
     assert set(integrators.INTEGRATORS) == {"Euler", "RK4", "Leapfrog"}
@@ -16,14 +20,13 @@ def test_integrators_registered():
 
 @pytest.mark.parametrize("mode", list(MODES))
 def test_every_mode_has_a_preset(mode):
-    assert list_presets(mode)
+    assert load_presets(mode)
 
-
-@pytest.mark.parametrize("preset", list_presets(), ids=lambda p: p.key)
+@pytest.mark.parametrize("preset", all_presets(), ids=lambda p: p["name"])
 def test_presets_load(preset):
-    assert preset.mode in MODES
-    system = preset.to_system()
-    n = len(preset.bodies)
+    assert preset["mode"] in MODES
+    system = to_system(preset)
+    n = len(preset["bodies"])
     assert system.pos.shape == system.vel.shape == (2 * n,)
     assert system.masses.shape == (n,)
 
@@ -39,7 +42,8 @@ def test_system_editing():
 
 
 def test_simulation_state_machine():
-    sim = Simulation(list_presets("planet")[0].to_system(), MODES["planet"])
+    preset = next(iter(load_presets("planet").values()))
+    sim = Simulation(to_system(preset), MODES["planet"])
     assert sim.state is State.STOPPED
     sim.start()
     assert sim.state is State.RUNNING
