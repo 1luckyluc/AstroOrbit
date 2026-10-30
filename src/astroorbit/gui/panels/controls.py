@@ -25,7 +25,7 @@ class ControlPanel(ttk.LabelFrame):
         self.preset = tk.StringVar()
         self.integrator = tk.StringVar()
         self.speed = tk.IntVar(value=5)
-        self.show_trails = tk.BooleanVar(value=True)
+        self.show_trails = tk.BooleanVar(value=False)
         self.show_labels = tk.BooleanVar(value=True)
 
         ttk.Label(self, text="Preset").pack(anchor="w")

@@ -51,6 +51,7 @@ class MainWindow:
 
         left = ttk.PanedWindow(main, orient="vertical")
         self.canvas = OrbitCanvas(left)
+        self.canvas.pack(expand=True, fill=tk.BOTH)
         self.canvas.on_view_change = self.redraw
         self.plots = PlotsPanel(left)
         left.add(self.canvas, weight=4)
